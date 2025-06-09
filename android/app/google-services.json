@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "524895877305",
+    "project_id": "sathosalankainventory",
+    "storage_bucket": "sathosalankainventory.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:524895877305:android:dcf8c6124a6bb49f25c368",
+        "android_client_info": {
+          "package_name": "com.example.sathosa_inventory"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCd7rH4mhJeK9SKeHr-OwVcn1Nul_8bvOk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
