@@ -3,9 +3,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logger/logger.dart';
 
-// Your screens
+//screens
 import 'views/auth/login_screen.dart';
-import 'views/home/home_screen.dart';
+import 'views/admin/admin_home_screen.dart';
+import 'views/manager/manager_home_screen.dart';
+import 'views/staff/staff_home_screen.dart';
+
+//Firestore role-fetching service
+import 'services/firestore_service.dart';
 
 final logger = Logger();
 
@@ -38,23 +43,44 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Use a StreamBuilder to listen to auth state
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(), // Realtime user check
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // 🔄 Still checking Firebase...
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // ✅ User is logged in
         if (snapshot.hasData && snapshot.data != null) {
-          return const HomeScreen();
+          return FutureBuilder<String?>(
+            future: FirestoreService().getUserRole(snapshot.data!.uid),
+            builder: (context, roleSnapshot) {
+              if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final role = roleSnapshot.data?.toLowerCase();
+
+              if (role == 'admin') {
+                return const AdminHomeScreen();
+              } else if (role == 'manager') {
+                return const ManagerHomeScreen();
+              } else if (role == 'staff' || role == 'employee') {
+                return const StaffHomeScreen();
+              } else {
+                // Unknown role or not set
+                return const Scaffold(
+                  body: Center(child: Text("❗ Unknown role. Contact Admin.")),
+                );
+              }
+            },
+          );
         }
 
-        // 🚪 Not logged in
+        // Not logged in
         return const LoginScreen();
       },
     );

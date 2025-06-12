@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sathosa_lanka_inventory/services/auth_service.dart';
+import 'package:sathosa_lanka_inventory/services/firestore_service.dart';
 import 'register_screen.dart';
-import '../home/home_screen.dart';
+// import '../home/home_screen.dart';
+import '../admin/admin_home_screen.dart';
+import '../manager/manager_home_screen.dart';
+import '../staff/staff_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,22 +20,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  String? _selectedRole;
+  // String? _selectedRole;
 
   // List of available roles
-  final List<String> _roles = ['Admin', 'Manager', 'Employee'];
-
+  // final List<String> _roles = ['Admin', 'Manager', 'Employee'];
   void _loginUser() async {
     setState(() => _isLoading = true);
-
-    // Validate role selection
-    if (_selectedRole == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(_buildSnackBar("Please select a role", Colors.red));
-      setState(() => _isLoading = false);
-      return;
-    }
 
     try {
       final user = await _authService.signInWithEmail(
@@ -39,22 +33,52 @@ class _LoginScreenState extends State<LoginScreen> {
         passwordCtrl.text.trim(),
       );
 
-      if (user != null) {
-        // Here you would typically fetch the user's actual role from Firestore
-        // For now, we'll use the selected role
-        // In a real app, you would verify the selected role matches the user's actual role
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          _buildSnackBar("Login failed. Check credentials.", Colors.red),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          _buildSnackBar(
-            "Login failed. Please check your credentials.",
-            Colors.red,
-          ),
-        );
+        final role = await FirestoreService().getUserRole(user.uid);
+
+        if (role == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            _buildSnackBar(
+              "No role assigned. Contact administrator.",
+              Colors.red,
+            ),
+          );
+          await _authService.signOut();
+        } else {
+          switch (role.toLowerCase()) {
+            case 'admin':
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
+              );
+              break;
+            case 'manager':
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const ManagerHomeScreen()),
+              );
+              break;
+            case 'employee':
+            case 'staff':
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const StaffHomeScreen()),
+              );
+              break;
+            default:
+              ScaffoldMessenger.of(context).showSnackBar(
+                _buildSnackBar(
+                  "Unknown role ($role). Contact administrator.",
+                  Colors.red,
+                ),
+              );
+              await _authService.signOut();
+          }
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -136,51 +160,51 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
 
                 // Role Selection Dropdown
-                DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  decoration: InputDecoration(
-                    labelText: 'Select Role',
-                    labelStyle: TextStyle(color: Colors.grey[600]),
-                    prefixIcon: Icon(
-                      Icons.person_outline,
-                      color: Colors.red[400],
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: Colors.red[400]!,
-                        width: 1.5,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 16,
-                    ),
-                  ),
-                  items: _roles.map((String role) {
-                    return DropdownMenuItem<String>(
-                      value: role,
-                      child: Text(role),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedRole = newValue;
-                    });
-                  },
-                  hint: const Text('Select your role'),
-                ),
-                const SizedBox(height: 14),
+                // DropdownButtonFormField<String>(
+                //   value: _selectedRole,
+                //   decoration: InputDecoration(
+                //     labelText: 'Select Role',
+                //     labelStyle: TextStyle(color: Colors.grey[600]),
+                //     prefixIcon: Icon(
+                //       Icons.person_outline,
+                //       color: Colors.red[400],
+                //     ),
+                //     border: OutlineInputBorder(
+                //       borderRadius: BorderRadius.circular(10),
+                //       borderSide: BorderSide(color: Colors.grey[300]!),
+                //     ),
+                //     enabledBorder: OutlineInputBorder(
+                //       borderRadius: BorderRadius.circular(10),
+                //       borderSide: BorderSide(color: Colors.grey[300]!),
+                //     ),
+                //     focusedBorder: OutlineInputBorder(
+                //       borderRadius: BorderRadius.circular(10),
+                //       borderSide: BorderSide(
+                //         color: Colors.red[400]!,
+                //         width: 1.5,
+                //       ),
+                //     ),
+                //     filled: true,
+                //     fillColor: Colors.white,
+                //     contentPadding: const EdgeInsets.symmetric(
+                //       vertical: 14,
+                //       horizontal: 16,
+                //     ),
+                //   ),
+                //   items: _roles.map((String role) {
+                //     return DropdownMenuItem<String>(
+                //       value: role,
+                //       child: Text(role),
+                //     );
+                //   }).toList(),
+                //   onChanged: (String? newValue) {
+                //     setState(() {
+                //       _selectedRole = newValue;
+                //     });
+                //   },
+                //   hint: const Text('Select your role'),
+                // ),
+                // const SizedBox(height: 14),
 
                 // Email Field
                 TextField(
