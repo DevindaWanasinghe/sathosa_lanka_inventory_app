@@ -3,10 +3,11 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.example.sathosa_lanka"
+    namespace = "com.example.sathosa_inventory"
     // compileSdk = flutter.compileSdkVersion
     compileSdk = 35
     //ndkVersion = flutter.ndkVersion
@@ -25,7 +26,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.sathosa_lanka"
+        applicationId = "com.example.sathosa_inventory"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // minSdk = flutter.minSdkVersion
@@ -52,4 +53,15 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+
+    // Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
+
+    // Firebase Analytics (version is managed by BoM)
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Firestore (version should NOT be specified with BoM)
+    implementation("com.google.firebase:firebase-firestore")
+
+    // Add other Firebase products here
 }

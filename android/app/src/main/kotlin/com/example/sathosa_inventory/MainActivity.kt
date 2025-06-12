@@ -1,4 +1,4 @@
-package com.example.sathosa_lanka
+package com.example.sathosa_inventory
 
 import io.flutter.embedding.android.FlutterActivity
 

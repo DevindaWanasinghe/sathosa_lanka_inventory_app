@@ -1,4 +1,4 @@
-name: sathosa_lanka
+name: sathosa_lanka_inventory
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -45,6 +45,9 @@ dependencies:
   csv: ^6.0.0
   shared_preferences: ^2.5.3
   flutter_local_notifications: ^19.2.1
+  firebase_storage: ^12.4.6
+  firebase_messaging: ^15.2.6
+  logger: ^2.5.0
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +70,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
