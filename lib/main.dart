@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 //screens
 import 'views/auth/login_screen.dart';
@@ -9,79 +10,129 @@ import 'views/admin/admin_home_screen.dart';
 import 'views/manager/manager_home_screen.dart';
 import 'views/staff/staff_home_screen.dart';
 
-//Firestore role-fetching service
+// Services
 import 'services/firestore_service.dart';
 
-final logger = Logger();
+// Providers
+import 'providers/auth_provider.dart';
 
-void main() async {
+final logger = Logger(
+  // ignore: deprecated_member_use
+  printer: PrettyPrinter(colors: true, printEmojis: true, printTime: true),
+);
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  logger.i("✅ Firebase initialized!");
-  runApp(const MyApp());
+  try {
+    await Firebase.initializeApp();
+    logger.i("✅ Firebase initialized successfully");
+  } catch (e) {
+    logger.e("🔥 Firebase initialization failed", error: e);
+  }
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brightness = ref.watch(brightnessProvider);
+    final theme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.deepPurple,
+        brightness: brightness,
+      ),
+      useMaterial3: true,
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+      ),
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Firebase App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+      title: 'Role-Based Dashboard',
+      theme: theme,
+      darkTheme: theme.copyWith(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
       ),
-      home: const AuthGate(), // ✅ Handles login status check
+      home: const AuthGate(),
+      onGenerateRoute: (settings) {
+        // Add named routes if needed
+        return null;
+      },
     );
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends ConsumerWidget {
   const AuthGate({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
 
-        if (snapshot.hasData && snapshot.data != null) {
-          return FutureBuilder<String?>(
-            future: FirestoreService().getUserRole(snapshot.data!.uid),
-            builder: (context, roleSnapshot) {
-              if (roleSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
+    return authState.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, stack) =>
+          Scaffold(body: Center(child: Text('Error: ${error.toString()}'))),
+      data: (user) {
+        if (user == null) return const LoginScreen();
 
-              final role = roleSnapshot.data?.toLowerCase();
+        return FutureBuilder<String?>(
+          future: FirestoreService().getUserRole(user.uid),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-              if (role == 'admin') {
+            if (snapshot.hasError) {
+              return Scaffold(
+                body: Center(child: Text('Role Error: ${snapshot.error}')),
+              );
+            }
+
+            final role = snapshot.data?.toLowerCase().trim();
+
+            switch (role) {
+              case 'admin':
                 return const AdminHomeScreen();
-              } else if (role == 'manager') {
+              case 'manager':
                 return const ManagerHomeScreen();
-              } else if (role == 'staff' || role == 'employee') {
+              case 'staff':
+              case 'employee':
                 return const StaffHomeScreen();
-              } else {
-                // Unknown role or not set
-                return const Scaffold(
-                  body: Center(child: Text("❗ Unknown role. Contact Admin.")),
+              default:
+                FirebaseAuth.instance.signOut();
+                return Scaffold(
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Invalid role assignment'),
+                        TextButton(
+                          onPressed: () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                          ),
+                          child: const Text('Return to Login'),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
-              }
-            },
-          );
-        }
-
-        // Not logged in
-        return const LoginScreen();
+            }
+          },
+        );
       },
     );
   }
